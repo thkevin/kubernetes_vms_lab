@@ -1,0 +1,6 @@
+---
+
+lab_user: "{{ lab_user | default('labkube')}}"
+lab_group: "{{ lab_group | default('labkube')}}"
+
+packages_dir: /opt

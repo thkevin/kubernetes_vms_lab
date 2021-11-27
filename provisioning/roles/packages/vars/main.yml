@@ -1,0 +1,37 @@
+---
+
+# Containerd
+containerd_version: 1.5.8
+containerd_tarball: cri-containerd-cni-{{ containerd_version }}-linux-{{ architecture_mapping[ansible_architecture] | default('amd64') }}.tar.gz
+containerd_src_link: https://github.com/containerd/containerd/releases/download/
+containerd_tarball_link: "{{ containerd_src_link }}/v{{ containerd_version }}/{{ containerd_tarball }}"
+containerd_tarball_checksum_link: "{{ containerd_tarball_link }}.sha256sum"
+
+containerd_service: containerd.service
+
+containerd_dependencies:
+  - libseccomp
+
+containerd_config_path: /etc/containerd/config.toml
+
+# kubeadm kubelet kubectl
+kube_version: 1.21.7
+kube_packages:
+  - kubelet
+  - kubeadm
+  - kubectl
+kube_repo_baseurl: "https://packages.cloud.google.com/yum/repos/kubernetes-el7-\\$basearch"
+kube_repo_gpg_key: ["https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"]
+
+kubelet_service: kubelet.service
+kubectl_service: kubectl.service
+kubeadm_service: kubeadm.service
+
+# Extra packages mainly for debugging the network
+extra_packages:
+  - wget
+  - telnet
+  - lsof
+  - tcpdump
+  - net-tools
+  - nmap

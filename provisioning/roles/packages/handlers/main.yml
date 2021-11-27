@@ -1,0 +1,35 @@
+---
+
+- name: Daemon reload
+  systemd:
+    daemon_reload: yes
+
+- name: Enable containerd service
+  service:
+    name: "{{ containerd_service }}"
+    enabled: yes
+
+- name: Enable kubelet service
+  service:
+    name: "{{ kubelet_service }}"
+    enabled: yes
+
+- name: Start containerd service
+  service:
+    name: "{{ containerd_service }}"
+    state: started
+
+- name: Restart containerd service
+  service:
+    name: "{{ containerd_service }}"
+    state: restarted
+
+- name: Start kubelet service
+  service:
+    name: "{{ kubelet_service }}"
+    state: started
+
+- name: Restart kubelet service
+  service:
+    name: "{{ kubelet_service }}"
+    state: restarted

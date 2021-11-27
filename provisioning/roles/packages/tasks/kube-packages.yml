@@ -1,0 +1,25 @@
+---
+
+- name: Set Kubernetes repository
+  yum_repository:
+    name: kubernetes
+    description: Kubernetes
+    baseurl: "{{ kube_repo_baseurl }}"
+    gpgkey: "{{ kube_repo_gpg_key }}"
+    exclude: "{{ kube_packages }}"
+    async: no
+    enabled: true
+    gpgcheck: yes
+    repo_gpgcheck: yes
+
+- name: Install kube packages
+  yum:
+    name: "{{ specific_packages }}"
+    state: present
+    exclude: kubernetes
+    disable_excludes: all
+  vars:
+    specific_packages: "{{ kube_packages | map('regex_replace', '$', '-' + kube_version) }}"
+  notify:
+    - Enable kubelet service
+    - Start kubelet service

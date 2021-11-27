@@ -1,0 +1,23 @@
+{% for config in containerd_configs | dict2items recursive %}
+{% set gap = loop.depth0 * 2 %}
+{% if (config.value | type_debug) == "dict" %}
+{{ ("[" + config.key + "]") | indent(width=gap,indentfirst=True) }}
+{{ loop(config.value | dict2items) }}
+{% elif config.value == [] %}
+{% set str_val = "[]" %}
+{{ ((config.key | string) + " = " + str_val) | indent(width=gap,indentfirst=True) }}
+{% else %}
+{% if config.value is not none %}
+{% if (config.value | type_debug) == "bool" %}
+{% set str_val = (config.value | string | lower)  %}
+{% elif (config.value | type_debug) in ["int","float"] %}
+{% set str_val = (config.value | string) %}
+{% elif (config.value | type_debug) == "list" %}
+{% set str_val = "[\"" + (config.value | join('", "') ) + "\"]" %}
+{% else %}
+{% set str_val = '"' + (config.value | string) + '"' %}
+{% endif %}
+{{ ((config.key | string) + " = " + str_val) | indent(width=gap,indentfirst=True) }}
+{% endif %}
+{% endif %}
+{% endfor %}

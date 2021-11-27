@@ -1,0 +1,63 @@
+---
+
+- name: Check services status
+  service_facts:
+
+- name: Install containerd
+  block:
+    - name: Install dependencies
+      package:
+        name: "{{ containerd_dependencies }}"
+        state: present
+
+    - name: Download containerd binaries
+      get_url:
+        url: "{{ containerd_tarball_link }}"
+        dest: "/home/{{ lab_user }}"
+        checksum: "sha256:{{ containerd_tarball_checksum_link }}"
+
+    - name: Unarchive containerd binaries
+      unarchive:
+        src: "/home/{{ lab_user }}/{{ containerd_tarball }}"
+        dest: /
+        extra_opts:
+          - --no-overwrite-dir
+        remote_src: yes
+        mode: 'a+rX'
+      notify:
+        - Daemon reload
+        - Enable containerd service
+        - Start containerd service
+
+    - name: Systemd actions
+      meta: flush_handlers
+
+    - name: Create containerd config directory
+      file:
+        path: "{{ containerd_config_file }}"
+        state: directory
+  when:
+    - containerd_service not in ansible_facts.services.keys()
+
+- name: Configure containerd cgroup driver property
+  set_fact:
+   containerd_cgroup:
+      plugins:
+        plugins."io.containerd.grpc.v1.cri":
+          plugins."io.containerd.grpc.v1.cri".containerd:
+            plugins."io.containerd.grpc.v1.cri".containerd.runtimes:
+              plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc:
+                plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options:
+                  SystemdCgroup: true
+
+- name: Apply systemd configuration
+  template:
+    src: config.toml
+    dest: "{{ containerd_config_file }}/config.toml"
+  vars:
+    containerd_configs: "{{ containerd_default_configs | combine(containerd_cgroup | default({}), recursive=True) }}"
+  notify:
+    - Restart containerd service
+
+- name: Systemd actions
+  meta: flush_handlers

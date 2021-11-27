@@ -1,0 +1,22 @@
+---
+
+- name: Configure servers
+  hosts: all
+
+  roles:
+    - name: Customize VMs system
+      role: setup
+
+- name: Instal packages
+  hosts: all
+
+  roles:
+    - name: Instal packages
+      role: packages
+
+- name: Create K8s cluster
+  hosts: all
+
+  roles:
+    - name: Create K8s cluster
+      role: cluster

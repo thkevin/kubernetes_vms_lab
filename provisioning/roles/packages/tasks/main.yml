@@ -1,0 +1,10 @@
+---
+
+- name: Install extra packages
+  include_tasks: extras.yml
+
+- name: Install containerd
+  include_tasks: containerd.yml
+
+- name: Install & configure kubectl
+  include_tasks: kube-packages.yml
