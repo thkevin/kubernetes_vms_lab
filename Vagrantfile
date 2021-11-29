@@ -4,10 +4,11 @@
 # LAB_BOX = "centos/8"
 LAB_BOX = "centos/7"
 CP_NODE_COUNT = 1
+
 # Customizable vm names 
 # Here, I use SNK wall names for fun :-)
 # NODES_NAMES = ["maria", "rose", "sina"]
-NODES_NAMES = ["worker-1", "worker-2", "worker-3"]
+NODES_NAMES = ["node-1", "node-2", "node-3"]
 NODES_COUNT = NODES_NAMES.size
 
 LAB_USER = "labkube"
@@ -50,21 +51,21 @@ Vagrant.configure("2") do |config|
 
   # Nodes
   (1..NODES_COUNT).each do |i|
-    config.vm.define "worker-#{i}" do |worker|
-      worker.vm.box = LAB_BOX
-      worker.vm.hostname = "c1-node#{i}"
-      worker.vm.network  :private_network,
+    config.vm.define "node-#{i}" do |node|
+      node.vm.box = LAB_BOX
+      node.vm.hostname = "c1-node#{i}"
+      node.vm.network  :private_network,
         virtualbox__intnet: "lab_network",
         ip: "172.16.94.#{10 + i}",
         netmask: "255.255.255.0",
         auto_config: true
-      worker.vm.disk :disk, size: "60GB", primary: true
-      worker.vm.provider "virtualbox" do |v|
+      node.vm.disk :disk, size: "60GB", primary: true
+      node.vm.provider "virtualbox" do |v|
         v.name = NODES_NAMES[i - 1]
       end
 
       if i == NODES_COUNT
-        worker.vm.provision :ansible do |ansible|
+        node.vm.provision :ansible do |ansible|
           # Disable default limit to connect to all the machines
           ansible.limit = "all"
           # Uncomment for verbose mode
