@@ -16,7 +16,7 @@
   user:
     name: "{{ lab_user }}"
     group: "{{ lab_group }}"
-    home: "/home/{{ lab_user }}"
+    home: "{{ lab_user_home }}"
     shell: /bin/bash
     uid: "{{ lab_user_uid }}"
     system: yes
@@ -45,7 +45,7 @@
 - name: "Add {{ lab_user }}'s profile"
   lineinfile:
     line: "[[ -r ~/.profile ]] && . ~/.profile"
-    path: "/home/{{ lab_user }}/.bash_profile"
+    path: "{{ lab_user_home }}/.bash_profile"
     create: yes
     owner: "{{ lab_user }}"
     group: "{{ lab_group }}"
@@ -54,6 +54,6 @@
 - name: Set {{ lab_user }}'s profile
   template:
     src: profile
-    dest: "/home/{{ lab_user }}/.profile"
+    dest: "{{ lab_user_home }}/.profile"
     owner: "{{ lab_user }}"
     group: "{{ lab_group }}"

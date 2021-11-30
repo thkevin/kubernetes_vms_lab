@@ -1,10 +1,36 @@
 ---
 
-# Cluster config
+- name: Generate kubeadm init config file
+  template:
+    src: kubeadm-config.yml
+    dest: "{{ lab_user_home }}/kubeadm-config.yml"
+    owner: "{{ lab_user }}"
+    group: "{{ lab_group }}"
+    mode: 0644
 
-# init cluster
+- name: Init cluster
+  command: >
+    kubeadm init
+      --config={{ lab_user_home }}/kubeadm-config.yml
+  register: kubeadm_init_output
+  failed_when: '"Your Kubernetes control-plane has initialized successfully!" not in kubeadm_init_output.stdout_lines'
 
-# Admin User 
+- name: Create containerd config directory
+  file:
+    path: "{{ lab_user_home }}/.kube"
+    state: directory
+    owner: "{{ lab_user }}"
+    group: "{{ lab_group }}"
+    mode: 0644
+
+- name: Create containerd config directory
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ lab_user_home }}/.kube/config"
+    remote_src: yes
+    owner: "{{ lab_user }}"
+    group: "{{ lab_group }}"
+    mode: 0600
 
 # Calico
 

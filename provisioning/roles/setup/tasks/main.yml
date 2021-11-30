@@ -23,6 +23,10 @@
     state: present
   loop: "{{ groups.all | list }}"
 
+# Upgrade packages & kernel
+- name: LTS kernel
+  include_tasks: upgrade_kernel.yml
+
 - name: Apply system customizations
   include_tasks: system.yml
 

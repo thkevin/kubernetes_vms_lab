@@ -3,7 +3,6 @@
 #  swapoff /etc/fstab
 - name: Disable swap
   command: swapoff --all --verbose
-  become: true
   register: swapoff
   changed_when: (swapoff.stdout_lines | length) != 0
 
@@ -43,6 +42,5 @@
   notify:
     - Reboot server
 
-- meta: flush_handlers
-
-# check ports
+- name: Flush handlers
+  meta: flush_handlers

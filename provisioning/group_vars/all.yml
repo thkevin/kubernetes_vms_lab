@@ -3,4 +3,6 @@
 lab_user: "{{ lab_user | default('labkube')}}"
 lab_group: "{{ lab_group | default('labkube')}}"
 
-packages_dir: /opt
+lab_user_home: "/home/{{ lab_user }}"
+
+kube_version: 1.21.7

@@ -6,10 +6,12 @@ LAB_BOX = "centos/7"
 CP_NODE_COUNT = 1
 
 # Customizable vm names 
-# Here, I use SNK wall names for fun :-)
+# Here, I use SNK wall names :-)
 # NODES_NAMES = ["maria", "rose", "sina"]
 NODES_NAMES = ["node-1", "node-2", "node-3"]
 NODES_COUNT = NODES_NAMES.size
+
+NODES_VM_NAMES = (1..NODES_COUNT).map{|i| "node-#{i}"}
 
 LAB_USER = "labkube"
 LAB_GROUP = "labkube"
@@ -71,6 +73,10 @@ Vagrant.configure("2") do |config|
           # Uncomment for verbose mode
           # ansible.verbose = "vvv"
           ansible.playbook = "provisioning/lab-node.yml"
+          ansible.groups = {
+            "nodes"        => NODES_VM_NAMES,
+            "control_pane" => ["cp-node"]
+          }
           ansible.extra_vars = {
             lab_user: "#{LAB_USER}",
             lab_group: "#{LAB_GROUP}",

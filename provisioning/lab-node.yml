@@ -1,21 +1,17 @@
 ---
 
-- name: Configure servers
+- name: Configure servers & Install packages
   hosts: all
 
   roles:
-    - name: Customize VMs system
+    - name: Setup VMs
       role: setup
 
-- name: Instal packages
-  hosts: all
-
-  roles:
-    - name: Instal packages
+    - name: Install packages
       role: packages
 
-- name: Create K8s cluster
-  hosts: all
+- name: Init cluster
+  hosts: control_pane[0]
 
   roles:
     - name: Create K8s cluster
