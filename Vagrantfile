@@ -18,6 +18,8 @@ LAB_GROUP = "labkube"
 VAGRANT_DIR = File.dirname(__FILE__)
 KEYS_DIR = "#{VAGRANT_DIR}/provisioning/files/keys"
 
+INIT_PACKAGES = ["python3-pip", "libselinux-python3"]
+
 Vagrant.require_version ">= 2.2.0"
 
 Vagrant.configure("2") do |config|
@@ -26,6 +28,11 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |v|
     v.memory = 2048
     v.cpus = 2
+  end
+
+  # Install Python 3 for ansible interpreter
+  config.vm.provision "shell" do |s|
+    s.inline = "sudo yum install -y --nogpgcheck #{INIT_PACKAGES.join(" ")}"
   end
 
   # Set lab_user as default user to connect to VMs
