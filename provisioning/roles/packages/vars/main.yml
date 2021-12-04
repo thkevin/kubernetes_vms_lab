@@ -1,6 +1,5 @@
 ---
 
-# Containerd
 containerd_version: 1.5.5
 containerd_tarball: cri-containerd-cni-{{ containerd_version }}-linux-{{ architecture_mapping[ansible_architecture] | default('amd64') }}.tar.gz
 containerd_src_link: https://github.com/containerd/containerd/releases/download/
@@ -13,7 +12,6 @@ containerd_dependencies: []
 
 containerd_config_path: /etc/containerd/config.toml
 
-# kubeadm kubelet kubectl
 kube_packages_version: "{{ kube_version }}"
 kube_packages:
   - kubelet
@@ -27,11 +25,9 @@ kubelet_service: kubelet.service
 kubectl_service: kubectl.service
 kubeadm_service: kubeadm.service
 
-# Extra packages mainly for debugging the network
-extra_packages:
+utils:
   - wget
   - telnet
-  - lsof
   - tcpdump
   - net-tools
   - nmap

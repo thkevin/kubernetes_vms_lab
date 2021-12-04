@@ -2,8 +2,8 @@
 
 - name: Add ELRepo
   yum:
-    name: https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
-    state: present
+    name: elrepo-release
+    state: latest
 
 - name: Install latest long term support
   yum:

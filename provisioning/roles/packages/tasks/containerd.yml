@@ -26,13 +26,13 @@
         - Enable containerd service
         - Start containerd service
 
-    - name: Systemd actions
-      meta: flush_handlers
-
     - name: Create containerd config directory
       file:
         path: "{{ containerd_config_file }}"
         state: directory
+
+- name: Systemd actions
+  meta: flush_handlers
 
 - name: Create containerd cgroup driver property configuration
   set_fact:
@@ -53,6 +53,3 @@
     containerd_configs: "{{ containerd_default_configs | combine(containerd_cgroup | default({}), recursive=True) }}"
   notify:
     - Restart containerd service
-
-- name: Systemd actions
-  meta: flush_handlers

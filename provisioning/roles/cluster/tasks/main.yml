@@ -1,37 +1,119 @@
 ---
 
-- name: Generate kubeadm init config file
-  template:
-    src: kubeadm-config.yml
-    dest: "{{ lab_user_home }}/kubeadm-config.yml"
-    owner: "{{ lab_user }}"
-    group: "{{ lab_group }}"
-    mode: 0644
+- name: Check if the cluster already has running pods
+  community.kubernetes.k8s_info:
+    kind: Pod
+    namespace: kube-system
+    field_selectors:
+      - status.phase=Running
+    username: "{{ lab_user }}"
+    kubeconfig: "{{ lab_user_home }}/.kube/config"
+  register: check_running_pods
+  retries: 5
+  delay: 3
+  until: check_running_pods.resources != []
+  ignore_errors: yes
+  when: inventory_hostname == groups.control_pane[0]
 
-- name: Init cluster
-  command: >
-    kubeadm init
-      --config={{ lab_user_home }}/kubeadm-config.yml
-  register: kubeadm_init_output
-  failed_when: '"Your Kubernetes control-plane has initialized successfully!" not in kubeadm_init_output.stdout_lines'
+- name: Initialize cluster
+  when:
+    - inventory_hostname == groups.control_pane[0]
+    - check_running_pods.failed | default(True)
+  block:
+    - name: Generate kubeadm initialization config file
+      template:
+        src: kubeadm-config.yml
+        dest: "{{ lab_user_home }}/kubeadm-config.yml"
+        owner: "{{ lab_user }}"
+        group: "{{ lab_group }}"
+        mode: 0644
 
-- name: Create containerd config directory
-  file:
-    path: "{{ lab_user_home }}/.kube"
-    state: directory
-    owner: "{{ lab_user }}"
-    group: "{{ lab_group }}"
-    mode: 0644
+    - name: Reset cluster before initialization
+      command: >
+        kubeadm reset -f
+      register: kubeadm_reset_output
 
-- name: Create containerd config directory
-  copy:
-    src: /etc/kubernetes/admin.conf
-    dest: "{{ lab_user_home }}/.kube/config"
-    remote_src: yes
-    owner: "{{ lab_user }}"
-    group: "{{ lab_group }}"
-    mode: 0600
+    - name: Cluster initialization
+      command: >
+        kubeadm init --config={{ lab_user_home }}/kubeadm-config.yml
+      register: kubeadm_init_output
+      failed_when: '"Your Kubernetes control-plane has initialized successfully!" not in kubeadm_init_output.stdout_lines'
 
-# Calico
+    - name: Create K8s config directory
+      file:
+        path: "{{ lab_user_home }}/.kube"
+        state: directory
+        owner: "{{ lab_user }}"
+        group: "{{ lab_group }}"
+        mode: 0775
 
-# Check cluster
+    - name: Create K8s config file
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ lab_user_home }}/.kube/config"
+        remote_src: yes
+        owner: "{{ lab_user }}"
+        group: "{{ lab_group }}"
+        mode: 0600
+
+    - name: Retrieve kubeadm join command
+      command: >
+        kubeadm token create --print-join-command
+      register: kubeadm_join_command
+      failed_when: not (kubeadm_join_command.stdout_lines[0] is match("kubeadm(\s*)join(.*)\-\-token(.*)\-\-discovery\-token\-ca\-cert\-hash(.*)"))
+
+    - name: Get a list of running pods
+      community.kubernetes.k8s_info:
+        kind: Pod
+        namespace: kube-system
+        field_selectors:
+          - status.phase=Running
+        username: "{{ lab_user }}"
+        kubeconfig: "{{ lab_user_home }}/.kube/config"
+      retries: 5
+      delay: 5
+      register: running_pods
+      until: (running_pods.resources | length) > 4
+
+    - name: Set running pods vars
+      set_fact:
+        pods_list: "{{ running_pods.resources | map(attribute='metadata.name') | list }}"
+
+    - name: Check that components pods are running
+      assert:
+        that: "{{ pods_list | select('match', '.*' + item + '.*') | list }} != []"
+        fail_msg: "{{ item }} pod isn't among the running pods names\n"
+        success_msg: "{{ item }} pod is running\n"
+      with_items:
+        - apiserver
+        - etcd
+        - controller-manager
+        - scheduler
+
+    - name: Download Calico manifest
+      ansible.builtin.get_url:
+        url: https://docs.projectcalico.org/manifests/calico.yaml
+        dest: "{{ lab_user_home }}/calico.yml"
+        mode: 0664
+
+    - name: Apply Calico Pod Network
+      community.kubernetes.k8s:
+        state: present
+        src: "{{ lab_user_home }}/calico.yml"
+        username: "{{ lab_user }}"
+        kubeconfig: "{{ lab_user_home }}/.kube/config"
+
+- name: Nodes join cluster
+  when:
+    - inventory_hostname in groups.nodes
+    - hostvars[groups.control_pane[0]].kubeadm_init_output.changed | default(False)
+  block:
+    - name: Create node cluster joinning command
+      set_fact:
+        join_cluster_command: "{{ hostvars[groups.control_pane[0]].kubeadm_join_command.stdout_lines[0] }}"
+
+    - name: Join nodes to the cluster
+      command: >
+        {{ join_cluster_command }}
+      register: kubeadm_reset_output
+      throttle: 1

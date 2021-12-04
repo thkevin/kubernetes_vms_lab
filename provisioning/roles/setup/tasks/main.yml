@@ -1,6 +1,5 @@
 ---
 
-# Set /etc/hosts
 - name: Retrieve network facts for each server
   setup:
     gather_subset: network
@@ -8,12 +7,6 @@
   delegate_facts: yes
   loop: "{{ groups.all }}"
   run_once: yes
-
-- name: Remove extra entries in /etc/hosts file
-  lineinfile:
-    path: /etc/hosts
-    regex: "{{ hostvars[inventory_hostname].ansible_hostname }}"
-    state: absent
 
 - name: Add all cluster nodes to /etc/hosts
   lineinfile:
@@ -23,9 +16,9 @@
     state: present
   loop: "{{ groups.all | list }}"
 
-# Upgrade packages & kernel
-- name: LTS kernel
+- name: Upgrade linux kernel to latest LTS if version lower than 4
   include_tasks: upgrade_kernel.yml
+  when: (ansible_kernel | regex_replace('^((\d+\.*)+).*', '\\1')) is version('4', 'lt')
 
 - name: Apply system customizations
   include_tasks: system.yml

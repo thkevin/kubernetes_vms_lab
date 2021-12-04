@@ -1,6 +1,5 @@
 ---
 
-#  swapoff /etc/fstab
 - name: Disable swap
   command: swapoff --all --verbose
   register: swapoff
@@ -13,7 +12,6 @@
     replace: '#\1\2\3swap\4'
     backup: yes
 
-# Load modules overlay & br_netfilter
 - name: Load kernel modules
   modprobe:
     name: "{{ item }}"
@@ -27,14 +25,12 @@
     create: yes
   loop: "{{ kernel_modules }}"
 
-# Set sysctl params
 - name: Apply sysctl params
   sysctl:
     name: "{{ item.name }}"
     value: "{{ item.value }}"
   loop: "{{ sysctl_params }}"
 
-# Disable selinux
 - name: Put SELinux in permissive mode, logging actions that would be blocked.
   selinux:
     policy: targeted

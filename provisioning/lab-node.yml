@@ -3,6 +3,10 @@
 - name: Configure servers & Install packages
   hosts: all
 
+  pre_tasks:
+    - name: Required ansible python libs
+      import_tasks: pre_tasks/python_libs.yml
+
   roles:
     - name: Setup VMs
       role: setup
@@ -10,9 +14,5 @@
     - name: Install packages
       role: packages
 
-- name: Init cluster
-  hosts: control_pane[0]
-
-  roles:
-    - name: Create K8s cluster
+    - name: Initialize K8s cluster
       role: cluster
