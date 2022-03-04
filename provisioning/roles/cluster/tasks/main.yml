@@ -108,6 +108,10 @@
     - inventory_hostname in groups.nodes
     - hostvars[groups.control_pane[0]].kubeadm_init_output.changed | default(False)
   block:
+    - name: Reset node
+      command: >
+        kubeadm reset -f
+
     - name: Create node cluster joinning command
       set_fact:
         join_cluster_command: "{{ hostvars[groups.control_pane[0]].kubeadm_join_command.stdout_lines[0] }}"
