@@ -9,8 +9,8 @@
     exclude: "{{ kube_packages }}"
     async: no
     enabled: true
-    gpgcheck: yes
-    repo_gpgcheck: yes
+    gpgcheck: no
+    repo_gpgcheck: no
 
 - name: Install kube packages
   yum:

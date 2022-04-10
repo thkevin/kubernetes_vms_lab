@@ -31,3 +31,4 @@ utils:
   - tcpdump
   - net-tools
   - nmap
+  - bash-completion
