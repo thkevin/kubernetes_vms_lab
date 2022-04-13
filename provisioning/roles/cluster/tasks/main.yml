@@ -30,14 +30,19 @@
 
     - name: Reset cluster before initialization
       command: >
-        kubeadm reset -f
-      register: kubeadm_reset_output
+        kubeadm reset --force
 
     - name: Cluster initialization
       command: >
         kubeadm init --config={{ lab_user_home }}/kubeadm-config.yml
       register: kubeadm_init_output
       failed_when: '"Your Kubernetes control-plane has initialized successfully!" not in kubeadm_init_output.stdout_lines'
+
+    - name: Retrieve kubeadm join command
+      command: >
+        kubeadm token create --print-join-command
+      register: kubeadm_join_command
+      failed_when: not (kubeadm_join_command.stdout_lines[0] is match("kubeadm(\s*)join(.*)\-\-token(.*)\-\-discovery\-token\-ca\-cert\-hash(.*)"))
 
     - name: Create K8s config directory
       file:
@@ -56,12 +61,6 @@
         group: "{{ lab_group }}"
         mode: 0600
 
-    - name: Retrieve kubeadm join command
-      command: >
-        kubeadm token create --print-join-command
-      register: kubeadm_join_command
-      failed_when: not (kubeadm_join_command.stdout_lines[0] is match("kubeadm(\s*)join(.*)\-\-token(.*)\-\-discovery\-token\-ca\-cert\-hash(.*)"))
-
     - name: Get a list of running pods
       community.kubernetes.k8s_info:
         kind: Pod
@@ -70,8 +69,8 @@
           - status.phase=Running
         username: "{{ lab_user }}"
         kubeconfig: "{{ lab_user_home }}/.kube/config"
-      retries: 5
-      delay: 5
+      retries: 10
+      delay: 3
       register: running_pods
       until: (running_pods.resources | length) > 4
 
@@ -103,6 +102,15 @@
         username: "{{ lab_user }}"
         kubeconfig: "{{ lab_user_home }}/.kube/config"
 
+    - name: Setup kubectl bash auto-completion
+      lineinfile:
+        line: "source <(kubectl completion bash)"
+        path: "{{ lab_user_home }}/.bashrc"
+        create: yes
+        owner: "{{ lab_user }}"
+        group: "{{ lab_group }}"
+        mode: 0644
+
 - name: Nodes join cluster
   when:
     - inventory_hostname in groups.nodes
@@ -110,7 +118,12 @@
   block:
     - name: Reset node
       command: >
-        kubeadm reset -f
+        kubeadm reset --force
+
+    - name: Generate join token
+      command: >
+        kubeadm token generate
+      register: kubeadm_join_token
 
     - name: Create node cluster joinning command
       set_fact:
@@ -119,5 +132,3 @@
     - name: Join nodes to the cluster
       command: >
         {{ join_cluster_command }}
-      register: kubeadm_reset_output
-      throttle: 1
