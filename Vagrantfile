@@ -1,13 +1,10 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# LAB_BOX = "centos/8"
 LAB_BOX = "centos/7"
 CP_NODE_COUNT = 1
 
-# Customizable vm names 
-# Here, I use SNK wall names :-)
-# NODES_NAMES = ["maria", "rose", "sina"]
+# Customizable vm names
 NODES_NAMES = ["node-1", "node-2", "node-3"]
 NODES_COUNT = NODES_NAMES.size
 
@@ -32,8 +29,15 @@ Vagrant.configure("2") do |config|
 
   # Install Python 3 for ansible interpreter
   config.vm.provision "shell" do |s|
-    s.inline = "sudo yum install -y --nogpgcheck #{INIT_PACKAGES.join(" ")}"
+    s.inline = "sudo yum install --assumeyes --nogpgcheck --quiet #{INIT_PACKAGES.join(" ")}"
   end
+
+  # Disable default sync folder
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  # Enable workdir folder
+  config.vm.synced_folder "workdir/", "/workdir",
+  type: "rsync",
+  owner: "root", group: "root"
 
   # Set lab_user as default user to connect to VMs
   VAGRANT_COMMAND = ARGV[0]

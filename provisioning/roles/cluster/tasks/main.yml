@@ -1,7 +1,7 @@
 ---
 
 - name: Check if the cluster already has running pods
-  community.kubernetes.k8s_info:
+  kubernetes.core.k8s_info:
     kind: Pod
     namespace: kube-system
     field_selectors:
@@ -12,7 +12,7 @@
   retries: 5
   delay: 3
   until: check_running_pods.resources != []
-  ignore_errors: yes
+  ignore_errors: True
   when: inventory_hostname == groups.control_pane[0]
 
 - name: Initialize cluster
@@ -62,7 +62,7 @@
         mode: 0600
 
     - name: Get a list of running pods
-      community.kubernetes.k8s_info:
+      kubernetes.core.k8s_info:
         kind: Pod
         namespace: kube-system
         field_selectors:
@@ -90,13 +90,13 @@
         - scheduler
 
     - name: Download Calico manifest
-      ansible.builtin.get_url:
+      get_url:
         url: https://docs.projectcalico.org/manifests/calico.yaml
         dest: "{{ lab_user_home }}/calico.yml"
         mode: 0664
 
     - name: Apply Calico Pod Network
-      community.kubernetes.k8s:
+      kubernetes.core.k8s:
         state: present
         src: "{{ lab_user_home }}/calico.yml"
         username: "{{ lab_user }}"
@@ -115,6 +115,7 @@
   when:
     - inventory_hostname in groups.nodes
     - hostvars[groups.control_pane[0]].kubeadm_init_output.changed | default(False)
+    - check_running_pods.failed | default(True)
   block:
     - name: Reset node
       command: >

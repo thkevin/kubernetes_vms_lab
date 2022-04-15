@@ -4,8 +4,8 @@
   hosts: all
 
   pre_tasks:
-    - name: Required ansible python libs
-      import_tasks: pre_tasks/python_libs.yml
+    - name: Prerequisites
+      import_tasks: pre_tasks/prerequisites.yml
 
   roles:
     - name: Setup VMs

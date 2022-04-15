@@ -1,0 +1,8 @@
+---
+
+- name: Pip install python libraries
+  pip:
+    name:
+      - PyYAML
+      - openshift
+      - kubernetes
