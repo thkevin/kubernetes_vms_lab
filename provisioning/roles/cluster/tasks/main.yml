@@ -9,7 +9,7 @@
     username: "{{ lab_user }}"
     kubeconfig: "{{ lab_user_home }}/.kube/config"
   register: check_running_pods
-  retries: 5
+  retries: 10
   delay: 3
   until: check_running_pods.resources != []
   ignore_errors: True

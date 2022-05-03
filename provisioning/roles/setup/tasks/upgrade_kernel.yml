@@ -1,12 +1,12 @@
 ---
 
 - name: Add ELRepo
-  yum:
+  dnf:
     name: elrepo-release
     state: latest
 
 - name: Install latest long term support
-  yum:
+  dnf:
     name: kernel-lt
     state: latest
     enablerepo: elrepo-kernel

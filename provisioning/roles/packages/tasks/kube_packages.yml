@@ -7,13 +7,17 @@
     baseurl: "{{ kube_repo_baseurl }}"
     gpgkey: "{{ kube_repo_gpg_key }}"
     exclude: "{{ kube_packages }}"
-    async: no
-    enabled: true
-    gpgcheck: no
-    repo_gpgcheck: no
+    enabled: yes
+    gpgcheck: yes
+    repo_gpgcheck: yes
+
+- name: Upgrade all packages
+  dnf:
+    name: "*"
+    state: latest
 
 - name: Install kube packages
-  yum:
+  dnf:
     name: "{{ specific_packages }}"
     state: present
     exclude: kubernetes

@@ -2,6 +2,7 @@
 
 - name: Configure servers & Install packages
   hosts: all
+  become: yes
 
   pre_tasks:
     - name: Prerequisites

@@ -18,7 +18,7 @@ kube_packages:
   - kubeadm
   - kubectl
 
-kube_repo_baseurl: "https://packages.cloud.google.com/yum/repos/kubernetes-el7-\\$basearch"
+kube_repo_baseurl: "https://packages.cloud.google.com/yum/repos/kubernetes-el7-$basearch"
 kube_repo_gpg_key: ["https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"]
 
 kubelet_service: kubelet.service
