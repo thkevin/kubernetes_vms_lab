@@ -9,11 +9,6 @@
     name: "{{ containerd_service }}"
     enabled: yes
 
-- name: Enable kubelet service
-  service:
-    name: "{{ kubelet_service }}"
-    enabled: yes
-
 - name: Start containerd service
   service:
     name: "{{ containerd_service }}"
@@ -23,6 +18,11 @@
   service:
     name: "{{ containerd_service }}"
     state: restarted
+
+- name: Enable kubelet service
+  service:
+    name: "{{ kubelet_service }}"
+    enabled: yes
 
 - name: Start kubelet service
   service:

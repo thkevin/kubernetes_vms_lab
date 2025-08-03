@@ -6,7 +6,7 @@
     description: Kubernetes
     baseurl: "{{ kube_repo_baseurl }}"
     gpgkey: "{{ kube_repo_gpg_key }}"
-    exclude: "{{ kube_packages }}"
+    exclude: "{{ kube_repo_exclude }}"
     enabled: yes
     gpgcheck: yes
     repo_gpgcheck: yes
@@ -18,12 +18,10 @@
 
 - name: Install kube packages
   dnf:
-    name: "{{ specific_packages }}"
+    name: "{{ kube_packages }}"
     state: present
     exclude: kubernetes
     disable_excludes: all
-  vars:
-    specific_packages: "{{ kube_packages | map('regex_replace', '$', '-' + kube_packages_version) }}"
   notify:
     - Enable kubelet service
     - Start kubelet service

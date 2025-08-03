@@ -1,1 +1,9 @@
 ---
+
+control_pane_eth1_ip : "{{ hostvars[groups.control_pane[0]].ansible_facts.eth1.ipv4.address }}"
+control_pane_hostname: "{{ hostvars[inventory_hostname].ansible_hostname }}"
+
+etcd_client_port: 2379
+etcd_peer_port: 2380
+
+api_bind_port: 6443

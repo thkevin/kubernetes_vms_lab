@@ -5,4 +5,10 @@ lab_group: "{{ lab_group | default('labkube')}}"
 
 lab_user_home: "/home/{{ lab_user }}"
 
-kube_version: 1.21.7
+kube_version: 1.31
+kube_full_version: 1.31.0
+
+containerd_service: containerd.service
+kubelet_service: kubelet.service
+kubectl_service: kubectl.service
+kubeadm_service: kubeadm.service

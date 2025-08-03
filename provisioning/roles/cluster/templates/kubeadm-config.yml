@@ -1,4 +1,4 @@
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/v1beta4
 bootstrapTokens:
 - groups:
   - system:bootstrappers:kubeadm:default-node-token
@@ -9,34 +9,63 @@ bootstrapTokens:
   - authentication
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {{ hostvars[inventory_hostname].ansible_facts.eth1.ipv4.address }}
-  bindPort: 6443
+  advertiseAddress: {{ control_pane_eth1_ip }}
+  bindPort: {{ api_bind_port }}
 nodeRegistration:
-  criSocket: /run/containerd/containerd.sock
-  name: node
+  criSocket: unix:///var/run/containerd/containerd.sock
+  imagePullPolicy: IfNotPresent
+  imagePullSerial: true
+  name: {{ control_pane_hostname }}
   taints: null
-  kubeletExtraArgs:
-    node-ip: {{ hostvars[inventory_hostname].ansible_facts.eth1.ipv4.address }}
+timeouts:
+  controlPlaneComponentHealthCheck: 4m0s
+  discovery: 5m0s
+  etcdAPICall: 2m0s
+  kubeletHealthCheck: 4m0s
+  kubernetesAPICall: 1m0s
+  tlsBootstrap: 5m0s
+  upgradeManifests: 5m0s
 ---
 apiServer:
-  timeoutForControlPlane: 4m0s
-apiVersion: kubeadm.k8s.io/v1beta2
+  certSANs:
+    - "{{ control_pane_eth1_ip }}"
+    - "{{ control_pane_hostname }}"
+  extraArgs:
+    - name: "bind-address"
+      value: "{{ control_pane_eth1_ip }}"
+    - name: "advertise-address"
+      value: "{{ control_pane_eth1_ip }}"
+apiVersion: kubeadm.k8s.io/v1beta4
+caCertificateValidityPeriod: 87600h0m0s
+certificateValidityPeriod: 8760h0m0s
 certificatesDir: /etc/kubernetes/pki
 clusterName: kubernetes
-controllerManager: {}
-dns:
-  type: CoreDNS
+controllerManager:
+  extraArgs:
+    - name: "bind-address"
+      value: "{{ control_pane_eth1_ip }}"
+dns: {}
+encryptionAlgorithm: RSA-2048
 etcd:
   local:
     dataDir: /var/lib/etcd
-imageRepository: k8s.gcr.io
+    extraArgs:
+    - name: "listen-client-urls"
+      value: "https://{{ control_pane_eth1_ip }}:{{ etcd_client_port}}"
+    - name: "advertise-client-urls"
+      value: "https://{{ control_pane_eth1_ip }}:{{ etcd_client_port}}"
+    - name: "listen-peer-urls"
+      value: "https://{{ control_pane_eth1_ip }}:{{ etcd_peer_port}}"
+    - name: "initial-advertise-peer-urls"
+      value: "https://{{ control_pane_eth1_ip }}:{{ etcd_peer_port}}"
+imageRepository: registry.k8s.io
 kind: ClusterConfiguration
-kubernetesVersion: {{ kube_version }}
+kubernetesVersion: {{ kube_full_version }}
 networking:
   dnsDomain: cluster.local
-  podSubnet: {{ pod_network_cidr }}
-scheduler: {}
----
-kind: KubeletConfiguration
-apiVersion: kubelet.config.k8s.io/v1beta1
-cgroupDriver: systemd
+  serviceSubnet: "{{ pod_network_cidr }}"
+proxy: {}
+scheduler:
+  extraArgs:
+    - name: "bind-address"
+      value: "{{ control_pane_eth1_ip }}"

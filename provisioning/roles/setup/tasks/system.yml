@@ -38,5 +38,11 @@
   notify:
     - Reboot server
 
+- name: Disable firewalld
+  service:
+    name: firewalld.service
+    enabled: no
+    state: stopped
+
 - name: Flush handlers
   meta: flush_handlers

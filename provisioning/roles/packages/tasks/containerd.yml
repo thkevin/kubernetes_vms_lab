@@ -6,50 +6,112 @@
 - name: Install containerd
   when:
     - containerd_service not in ansible_facts.services.keys()
+    - not (ansible_facts['services'][containerd_service]['state'] | default("")) == "running"
   block:
-    - name: Download containerd binaries
-      get_url:
-        url: "{{ containerd_tarball_link }}"
-        dest: "{{ lab_user_home }}"
-        checksum: "sha256:{{ containerd_tarball_checksum_link }}"
+    - name: Get containerd binaries
+      when:
+        - (containerd_service not in ansible_facts.services.keys()) | default(false)
+      block:
+        - name: Download containerd binaries
+          get_url:
+            url: "{{ containerd_release_url }}"
+            dest: "{{ lab_user_home }}"
+            checksum: "sha256:{{ containerd_release_checksum_url }}"
 
-    - name: Unarchive containerd binaries
-      unarchive:
-        src: "{{ lab_user_home }}/{{ containerd_tarball }}"
-        dest: /
-        extra_opts:
-          - --no-overwrite-dir
-        remote_src: yes
-        mode: 'a+rX'
-      notify:
-        - Daemon reload
-        - Enable containerd service
-        - Start containerd service
+        - name: Unarchive containerd binaries
+          unarchive:
+            src: "{{ lab_user_home }}/{{ containerd_release }}"
+            dest: /usr/local
+            extra_opts:
+              - --no-overwrite-dir
+            remote_src: yes
+            mode: 'a+rX'
+
+        - name: Delete containerd binaries
+          file:
+            path: "{{ lab_user_home }}/{{ containerd_release }}"
+            state: absent
+
+        - name: Containerd service file
+          copy:
+            src: containerd.service
+            dest: "{{ containerd_service_path }}"
+            mode: '0644'
+          notify:
+            - Daemon reload
+            - Enable containerd service
+            - Start containerd service
 
     - name: Create containerd config directory
       file:
         path: "{{ containerd_config_file }}"
         state: directory
 
+    - name: Create containerd cgroup driver property configuration
+      set_fact:
+        containerd_cgroup:
+            plugins:
+              plugins."io.containerd.cri.v1.runtime":
+                plugins."io.containerd.cri.v1.runtime".containerd:
+                  plugins."io.containerd.cri.v1.runtime".containerd.runtimes:
+                    plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runc:
+                      plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runc.options:
+                        SystemdCgroup: true
+
+    - name: Apply systemd configuration
+      template:
+        src: config.toml
+        dest: "{{ containerd_config_file }}/config.toml"
+      vars:
+        containerd_configs: "{{ containerd_default_configs | combine(containerd_cgroup | default({}), recursive=True) }}"
+      changed_when: True
+      notify:
+        - Restart containerd service
+
+- name: Install runc
+  block:
+    - name: Download runc release
+      get_url:
+        url: "{{ runc_release_url }}"
+        dest: "{{ lab_user_home }}"
+        checksum: "sha256:{{ runc_release_checksum_url }}"
+
+    - name: Install runc
+      command: >
+        install -m 755 {{ lab_user_home }}/{{ runc_release }} {{ runc_install_path }}
+
+    - name: Delete runc binaries
+      file:
+        path: "{{ lab_user_home }}/{{ runc_release }}"
+        state: absent
+
+- name: Install CNI plugins
+  block:
+    - name: Download CNI plugins archive
+      get_url:
+        url: "{{ cni_plugins_release_url }}"
+        dest: "{{ lab_user_home }}"
+        checksum: "sha256:{{ cni_plugins_release_checksum_url }}"
+
+    - name: Create cni plugins directory
+      file:
+        path: "{{ cni_plugins_install_path }}"
+        state: directory
+
+    - name: Install CNI plugins
+      unarchive:
+        src: "{{ lab_user_home }}/{{ cni_plugins_release }}"
+        dest: "{{ cni_plugins_install_path }}"
+        extra_opts:
+          - --no-overwrite-dir
+        remote_src: yes
+        mode: 'a+rX'
+
+    - name: Delete CNI plugins archive
+      file:
+        path: "{{ lab_user_home }}/{{ cni_plugins_release }}"
+        state: absent
+
 - name: Systemd actions
   meta: flush_handlers
 
-- name: Create containerd cgroup driver property configuration
-  set_fact:
-   containerd_cgroup:
-      plugins:
-        plugins."io.containerd.grpc.v1.cri":
-          plugins."io.containerd.grpc.v1.cri".containerd:
-            plugins."io.containerd.grpc.v1.cri".containerd.runtimes:
-              plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc:
-                plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options:
-                  SystemdCgroup: true
-
-- name: Apply systemd configuration
-  template:
-    src: config.toml
-    dest: "{{ containerd_config_file }}/config.toml"
-  vars:
-    containerd_configs: "{{ containerd_default_configs | combine(containerd_cgroup | default({}), recursive=True) }}"
-  notify:
-    - Restart containerd service

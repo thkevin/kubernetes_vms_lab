@@ -1,34 +1,45 @@
 ---
 
-containerd_version: 1.5.5
-containerd_tarball: cri-containerd-cni-{{ containerd_version }}-linux-{{ architecture_mapping[ansible_architecture] | default('amd64') }}.tar.gz
-containerd_src_link: https://github.com/containerd/containerd/releases/download/
-containerd_tarball_link: "{{ containerd_src_link }}/v{{ containerd_version }}/{{ containerd_tarball }}"
-containerd_tarball_checksum_link: "{{ containerd_tarball_link }}.sha256sum"
+node_architecture: "{{ architecture_mapping[ansible_architecture] | default('amd64') }}"
 
-containerd_service: containerd.service
-
+containerd_version: 2.1.2
+containerd_release: containerd-{{ containerd_version }}-linux-{{ node_architecture }}.tar.gz
+containerd_downloads_url: https://github.com/containerd/containerd/releases/download
+containerd_release_url: "{{ containerd_downloads_url }}/v{{ containerd_version }}/{{ containerd_release }}"
+containerd_release_checksum_url: "{{ containerd_release_url }}.sha256sum"
 containerd_dependencies: []
-
 containerd_config_path: /etc/containerd/config.toml
+containerd_service_path: /usr/lib/systemd/system/containerd.service
+
+runc_version: 1.2.6
+runc_downloads_url: https://github.com/opencontainers/runc/releases/download
+runc_release: runc.{{ node_architecture }}
+runc_release_url: "{{ runc_downloads_url }}/v{{ runc_version }}/{{ runc_release }}"
+runc_release_checksum_url: "{{ runc_downloads_url }}/v{{ runc_version }}/runc.sha256sum"
+runc_install_path: /usr/local/sbin/runc
+
+cni_plugins_version: 1.7.1
+cni_plugins_downloads_url: https://github.com/containernetworking/plugins/releases/download
+cni_plugins_release: cni-plugins-linux-amd64-v{{ cni_plugins_version }}.tgz
+cni_plugins_release_url: "{{ cni_plugins_downloads_url }}/v{{ cni_plugins_version }}/{{ cni_plugins_release }}"
+cni_plugins_release_checksum_url: "{{ cni_plugins_release_url }}.sha256"
+cni_plugins_install_path: /opt/cni/bin
+
 
 kube_packages_version: "{{ kube_version }}"
 kube_packages:
   - kubelet
   - kubeadm
   - kubectl
-
-kube_repo_baseurl: "https://packages.cloud.google.com/yum/repos/kubernetes-el7-$basearch"
-kube_repo_gpg_key: ["https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"]
-
-kubelet_service: kubelet.service
-kubectl_service: kubectl.service
-kubeadm_service: kubeadm.service
-
+kube_repo_baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ kube_version }}/rpm/"
+kube_repo_gpg_key: "https://pkgs.k8s.io/core:/stable:/v{{ kube_version }}/rpm/repodata/repomd.xml.key"
+kube_repo_exclude: "{{ kube_packages + ['cri-tools', 'kubernetes-cni'] }}"
 utils:
   - wget
   - telnet
+  - mtr
   - tcpdump
   - net-tools
   - nmap
+  - ncdu
   - bash-completion

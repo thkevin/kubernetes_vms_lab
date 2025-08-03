@@ -1,12 +1,9 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-LAB_BOX = "centos/stream8"
-CP_NODE_COUNT = 1
+LAB_BOX = "generic/centos9s"
 
-# Customizable vm names
-NODES_NAMES = ["node-1", "node-2", "node-3"]
-NODES_COUNT = NODES_NAMES.size
+NODES_COUNT = 3
 
 NODES_VM_NAMES = (1..NODES_COUNT).map{|i| "node-#{i}"}
 
@@ -14,6 +11,8 @@ LAB_USER = "labkube"
 LAB_GROUP = "labkube"
 VAGRANT_DIR = File.dirname(__FILE__)
 KEYS_DIR = "#{VAGRANT_DIR}/provisioning/files/keys"
+
+NODES_DISK_SIZE = "80GB"
 
 Vagrant.require_version ">= 2.2.0"
 
@@ -49,10 +48,11 @@ Vagrant.configure("2") do |config|
       ip: "172.16.94.10",
       netmask: "255.255.255.0",
       auto_config: true
-    cp_node.vm.disk :disk, size: "60GB", primary: true
+    cp_node.vm.disk :disk, size: NODES_DISK_SIZE, primary: true
     cp_node.vm.provider "virtualbox" do |v|
       v.name = "c1-cp1"
     end
+    cp_node.vm.provision "shell", inline: "dnf install --assumeyes --quiet python3-pip"
   end
 
   # Nodes
@@ -65,17 +65,18 @@ Vagrant.configure("2") do |config|
         ip: "172.16.94.#{10 + i}",
         netmask: "255.255.255.0",
         auto_config: true
-      node.vm.disk :disk, size: "60GB", primary: true
+      node.vm.disk :disk, size: NODES_DISK_SIZE, primary: true
       node.vm.provider "virtualbox" do |v|
-        v.name = NODES_NAMES[i - 1]
+        v.name = NODES_VM_NAMES[i - 1]
       end
+      node.vm.provision "shell", inline: "dnf install --assumeyes --quiet python3-pip"
 
       if i == NODES_COUNT
         node.vm.provision :ansible do |ansible|
           # Disable default limit to connect to all the machines
           ansible.limit = "all"
           # Uncomment for verbose mode
-          # ansible.verbose = "vv"
+          # ansible.verbose = "v"
           ansible.playbook = "provisioning/lab-node.yml"
           ansible.groups = {
             "nodes"        => NODES_VM_NAMES,

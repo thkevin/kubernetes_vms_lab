@@ -1,24 +1,15 @@
 ---
 
-- name: Check if the cluster already has running pods
-  kubernetes.core.k8s_info:
-    kind: Pod
-    namespace: kube-system
-    field_selectors:
-      - status.phase=Running
-    username: "{{ lab_user }}"
-    kubeconfig: "{{ lab_user_home }}/.kube/config"
-  register: check_running_pods
-  retries: 10
-  delay: 3
-  until: check_running_pods.resources != []
-  ignore_errors: True
-  when: inventory_hostname == groups.control_pane[0]
+# If the config file exists, the initialization step must have been done before
+- name: Get stats of K8s config file
+  stat:
+    path: "{{ lab_user_home }}/.kube/config"
+  register: kube_cfg_file
 
-- name: Initialize cluster
+- name: Initialize cluster control plane
   when:
     - inventory_hostname == groups.control_pane[0]
-    - check_running_pods.failed | default(True)
+    - not (kube_cfg_file.stat.exists | default(false))
   block:
     - name: Generate kubeadm initialization config file
       template:
@@ -27,6 +18,13 @@
         owner: "{{ lab_user }}"
         group: "{{ lab_group }}"
         mode: 0644
+      changed_when: True
+      notify:
+        - Start containerd service
+        - Start kubelet service
+
+    - name: Flush handlers
+      meta: flush_handlers
 
     - name: Reset cluster before initialization
       command: >
@@ -70,7 +68,7 @@
         username: "{{ lab_user }}"
         kubeconfig: "{{ lab_user_home }}/.kube/config"
       retries: 10
-      delay: 3
+      delay: 5
       register: running_pods
       until: (running_pods.resources | length) > 4
 
@@ -80,7 +78,8 @@
 
     - name: Check that components pods are running
       assert:
-        that: "{{ pods_list | select('match', '.*' + item + '.*') | list }} != []"
+        that:
+          - (pods_list | select('match', '.*' + item + '.*') | list | length) > 0
         fail_msg: "{{ item }} pod isn't among the running pods names\n"
         success_msg: "{{ item }} pod is running\n"
       with_items:
@@ -88,11 +87,14 @@
         - etcd
         - controller-manager
         - scheduler
+        - proxy
 
-    - name: Download Calico manifest
-      get_url:
-        url: https://docs.projectcalico.org/manifests/calico.yaml
+    - name: Template Calico manifest
+      template:
+        src: calico.yml
         dest: "{{ lab_user_home }}/calico.yml"
+        owner: "{{ lab_user }}"
+        group: "{{ lab_group }}"
         mode: 0664
 
     - name: Apply Calico Pod Network
@@ -115,7 +117,6 @@
   when:
     - inventory_hostname in groups.nodes
     - hostvars[groups.control_pane[0]].kubeadm_init_output.changed | default(False)
-    - check_running_pods.failed | default(True)
   block:
     - name: Reset node
       command: >

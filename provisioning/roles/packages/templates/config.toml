@@ -18,6 +18,8 @@
 {% set str_val = '"' + (config.value | string) + '"' %}
 {% endif %}
 {{ ((config.key | string) + " = " + str_val) | indent(width=gap,first=True) }}
+{% else %}
+{{ ((config.key | string)) | indent(width=gap,first=True) }}
 {% endif %}
 {% endif %}
 {% endfor %}
